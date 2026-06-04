@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
+
+# Secrets — NEVER commit these
+.env
+.env.local
+.env.production
+*.pem
+*.key
+
+# Storage
+storage/
+uploads/
+*.db
+*.sqlite
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.vercel/
+frontend/tsconfig.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# durable checkpointer
+data/
+.coverage
+
+# Cleanup additions
+data/
+*.patch
+*.ps1
+.coverage
+htmlcov/
+*.tsbuildinfo
+
+.vercel
+.env*
