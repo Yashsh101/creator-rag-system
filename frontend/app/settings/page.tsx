@@ -20,9 +20,13 @@ export default function SettingsPage() {
   const [apiBaseUrl, setApiBaseUrl] = useState(settings.apiBaseUrl);
   const [apiKey, setApiKey] = useState(settings.apiKey);
   const [prodMode, setProdMode] = useState(settings.mode === "prod");
+  // Transient save-confirmation state — shows "✓ Saved" for 2s then reverts.
+  const [saved, setSaved] = useState(false);
 
   const save = () => {
     updateSettings({ apiBaseUrl, apiKey, mode: prodMode ? "prod" : "local" });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   };
 
   return (
@@ -37,23 +41,44 @@ export default function SettingsPage() {
           <CardContent className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="api-url">API base URL</Label>
-              <Input id="api-url" value={apiBaseUrl} onChange={(event) => setApiBaseUrl(event.target.value)} placeholder="https://your-api.railway.app" />
+              <Input
+                id="api-url"
+                value={apiBaseUrl}
+                onChange={(event) => setApiBaseUrl(event.target.value)}
+                placeholder="https://creator-rag-backend.onrender.com"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="api-key">API key</Label>
-              <Input id="api-key" value={apiKey} onChange={(event) => setApiKey(event.target.value)} type="password" />
+              <Input
+                id="api-key"
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+                type="password"
+              />
             </div>
             <Separator />
             <div className="flex items-center justify-between rounded-md border border-white/10 bg-white/[0.03] p-4">
               <div>
                 <div className="text-sm font-medium text-white">Production mode</div>
-                <div className="mt-1 text-sm text-zinc-500">Tightens user expectations around real keys and production services.</div>
+                <div className="mt-1 text-sm text-zinc-500">
+                  Tightens user expectations around real keys and production services.
+                </div>
               </div>
               <Switch checked={prodMode} onCheckedChange={setProdMode} />
             </div>
-            <Button onClick={save}>
-              <Save className="h-4 w-4" />
-              Save settings
+            <Button onClick={save} disabled={saved}>
+              {saved ? (
+                <>
+                  <span className="mr-2">✓</span>
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save settings
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -73,7 +98,10 @@ export default function SettingsPage() {
                     <div className="text-xs text-zinc-500">Current: {theme}</div>
                   </div>
                 </div>
-                <Switch checked={theme !== "light"} onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")} />
+                <Switch
+                  checked={theme !== "light"}
+                  onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                />
               </div>
             </CardContent>
           </Card>
@@ -85,7 +113,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <Button variant="outline" onClick={clearSession}>
-                <RotateCcw className="h-4 w-4" />
+                <RotateCcw className="mr-2 h-4 w-4" />
                 Clear browser session
               </Button>
               <div className="flex items-start gap-3 rounded-md border border-white/10 bg-white/[0.03] p-4 text-sm text-zinc-500">

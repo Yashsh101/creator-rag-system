@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import uuid
 
@@ -26,29 +27,49 @@ async def root():
     return {"status": "ok"}
 
 
+# Render free tier health-check pings both / and a configurable path.
+# Keep a dedicated /health alias so render.yaml healthCheckPath=/health also works.
+@app.get("/health")
+async def health_root():
+    return {"status": "ok"}
+
+
 @app.get("/api/v1/health")
 async def health():
     return {"status": "ok"}
 
 
-allowed_origins = [
-    origin.strip()
-    for origin in settings.cors_allowed_origins.split(",")
-    if origin.strip()
+# Build CORS origin list:
+#   1. settings.cors_allowed_origins  (comma-separated env var)
+#   2. FRONTEND_URL env var           (explicit Vercel URL)
+#   3. localhost fallback for local dev
+# If nothing is set (e.g. first cold-boot before env vars are configured),
+# fall back to ["*"] so the service is reachable at all.
+_origins_from_settings = [
+    o.strip()
+    for o in settings.cors_allowed_origins.split(",")
+    if o.strip()
 ]
+_extra_origins = [
+    o for o in [
+        os.getenv("FRONTEND_URL", ""),
+        "http://localhost:3000",
+    ]
+    if o
+]
+allowed_origins = list(dict.fromkeys(_origins_from_settings + _extra_origins))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=allowed_origins if allowed_origins else ["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["X-API-Key", "X-Trace-ID", "Content-Type"],
 )
 
 app.include_router(router, prefix="/api/v1")
 app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(workflow_router, prefix="/api/v1")
-
 app.include_router(chat_router)
 
 app.add_exception_handler(AppError, app_error_handler)
@@ -62,10 +83,14 @@ async def request_context_middleware(request: Request, call_next):
     started = time.perf_counter()
 
     try:
+        # Skip rate-limiting for preflight OPTIONS and health/root paths.
+        # Before this fix: OPTIONS preflight was hitting the rate-limiter and
+        # returning 429, which caused every CORS request to fail on first touch.
         if (
             request.method != "OPTIONS"
             and request.url.path not in {
                 "/",
+                "/health",
                 "/api/v1/health",
                 "/api/v1/health/ready",
             }
@@ -89,7 +114,6 @@ async def request_context_middleware(request: Request, call_next):
                 "status_code": exc.status_code,
             },
         )
-
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -116,7 +140,6 @@ async def request_context_middleware(request: Request, call_next):
     response.headers["x-trace-id"] = trace_id
 
     elapsed_ms = int((time.perf_counter() - started) * 1000)
-
     logger.info(
         "request_completed method=%s path=%s status=%s latency_ms=%s trace_id=%s",
         request.method,

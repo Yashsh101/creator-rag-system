@@ -56,14 +56,22 @@ export function UploadDropzone() {
           started_at: null,
           completed_at: null,
           failed_at: null,
-          filename: response.filename
+          filename: response.filename,
         };
         upsertJob(initial);
         setActiveJobId(response.job_id);
         await pollJob(response.job_id, response.filename);
       } catch (caught) {
-        const message = caught instanceof RagApiError ? caught.message : caught instanceof Error ? caught.message : "Upload failed.";
+        const message =
+          caught instanceof RagApiError
+            ? caught.message
+            : caught instanceof Error
+            ? caught.message
+            : "Upload failed.";
         setError(message);
+        // Fix: reset stuck progress bar so the user can retry.
+        // Before this fix the bar stayed at 35% forever when ingest() threw.
+        setProgress(0);
       }
     },
     [client, pollJob, upsertJob]
@@ -90,7 +98,9 @@ export function UploadDropzone() {
           <FileUp className="h-6 w-6 text-cyan-200" />
         </div>
         <h2 className="mt-5 text-lg font-semibold text-white">Drop PDFs to index</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-400">Upload source documents into your RAG pipeline and watch durable ingestion state in real time.</p>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-400">
+          Upload source documents into your RAG pipeline and watch durable ingestion state in real time.
+        </p>
         <Button className="mt-6" onClick={() => inputRef.current?.click()}>
           Select PDF
         </Button>
@@ -112,7 +122,9 @@ export function UploadDropzone() {
               <div className="mt-1 text-xs text-zinc-500">Job {activeJob.job_id}</div>
             </div>
             <div className="flex items-center gap-3">
-              {activeJob.status === "processing" || activeJob.status === "queued" ? <Loader2 className="h-4 w-4 animate-spin text-cyan-200" /> : null}
+              {activeJob.status === "processing" || activeJob.status === "queued" ? (
+                <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
+              ) : null}
               {activeJob.status === "failed" ? <XCircle className="h-4 w-4 text-red-300" /> : null}
               <StatusChip status={activeJob.status} />
             </div>

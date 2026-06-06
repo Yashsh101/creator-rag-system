@@ -27,13 +27,13 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . .
 
 RUN useradd --create-home --shell /usr/sbin/nologin appuser \
-    && mkdir -p /app/storage /app/chroma_data \
+    && mkdir -p /app/storage /app/chroma_data /app/data \
     && chown -R appuser:appuser /app
 
 USER appuser
-EXPOSE 8000
+EXPOSE 10000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-10000}/api/v1/health || exit 1
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
