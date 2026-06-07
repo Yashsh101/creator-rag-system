@@ -18,7 +18,7 @@ alembic==1.14.0
 openai==1.58.1
 langchain==0.3.13
 langchain-openai==0.2.14
-langchain-community==0.3.13
+langchain-community==0.3.27
 cohere==5.11.4
 
 # ── RAG / Vector store ─────────────────────────────────────────────
