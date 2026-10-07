@@ -1,6 +1,6 @@
 import pytest
 
-from app.core.config import Settings
+from app.core.config import Settings, settings
 from app.core.rate_limit import RedisRateLimiter
 from app.services.readiness import readiness_check
 
@@ -36,6 +36,7 @@ def test_production_config_rejects_wildcard_cors():
 
 def test_redis_limiter_uses_redis_client_mock(monkeypatch):
     calls = []
+    monkeypatch.setattr(settings, "rate_limit_enabled", True)
 
     class FakeClient:
         def ping(self):
