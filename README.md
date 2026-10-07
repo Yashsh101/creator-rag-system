@@ -1,6 +1,6 @@
 # Creator RAG — Video Analytics Chatbot
 
-Production-grade RAG chatbot that compares one YouTube video and one Instagram Reel using extracted metadata, transcripts, engagement metrics, LangGraph memory, Chroma vector search, and streaming citations.
+Demo RAG chatbot that compares one YouTube video and one Instagram Reel using extracted metadata, transcripts, engagement metrics, LangGraph memory, Chroma vector search, and streaming citations.
 
 ## Architecture
 
@@ -40,21 +40,24 @@ flowchart LR
 | Frontend | Next.js | Server-side proxy for API key isolation and deploy-ready UI |
 | Streaming | SSE | Simple CEO-demo-friendly token streaming over standard HTTP |
 
-## Cost Analysis
+## Cost Considerations
 
-| Usage | Estimated Daily Cost | Notes |
-|---|---:|---|
-| 1,000 creators/day | ~$2/day | Assumes two short videos per creator, cached session vectorstores, concise chat usage |
-| 10,000 creators/day | ~$80/day | Higher chat volume and repeated extraction dominate cost |
+Actual cost depends on model usage, video length, extraction frequency, and hosting choices. The repository does not include a measured cost benchmark; review provider pricing and observe a representative workload before estimating spend.
 
 ## Setup
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
+source .venv/bin/activate  # PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-cd frontend && npm install
-cd .. && uvicorn app.main:app --host 0.0.0.0 --port 8000
+cp .env.example .env
+alembic upgrade head
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# In a second shell
+cd frontend
+npm install
+npm run dev
 ```
 
 ## Environment
@@ -69,10 +72,10 @@ Copy `.env.example` and configure:
 - `DATABASE_URL`
 - `CORS_ALLOWED_ORIGINS`
 
-Frontend server-side proxy variables live in `frontend/.env.example`:
+Set these frontend variables in `frontend/.env.local` (create it if needed):
 
-- `RAG_API_BASE_URL`
-- `RAG_API_KEY`
+- `NEXT_PUBLIC_API_URL` (backend base URL)
+- `NEXT_PUBLIC_RAG_API_KEY` (a value present in `USER_API_KEYS` or `ADMIN_API_KEYS`)
 
 ## Live URLs
 
@@ -84,9 +87,9 @@ Frontend server-side proxy variables live in `frontend/.env.example`:
 
 ## Why LangGraph Over LangChain
 
-LangGraph is used because this product needs explicit state, not a single opaque chain. The ingest graph extracts both videos, computes metrics, and builds the session vectorstore. The chat graph routes metadata questions differently from transcript questions, retrieves only when needed, and persists conversation state by `thread_id` with a **durable SqliteSaver checkpointer**, so sessions survive restarts, redeploys, and multi-worker deployments. That makes the demo inspectable, deterministic, resumable, and easier to defend in a live code review.
+LangGraph is used because this product needs explicit state, not a single opaque chain. The ingest graph extracts both videos, computes metrics, and builds the session vectorstore. The chat graph routes metadata questions differently from transcript questions, retrieves only when needed, and persists conversation state by `thread_id` with a **SqliteSaver checkpointer**. The default SQLite file is suitable for a single instance; use the documented Postgres option for shared state. This keeps the demo inspectable and resumable without claiming deployment-scale guarantees.
 
-## Scaling Path (config-only, no code changes)
+## Deployment Options (not a scale guarantee)
 
 | Concern | Default (demo) | Scale switch |
 |---|---|---|
@@ -95,8 +98,8 @@ LangGraph is used because this product needs explicit state, not a single opaque
 | Reranking | Lexical re-scoring | `RERANKER_PROVIDER=cohere` + `COHERE_API_KEY` |
 | Ingestion | Concurrent in-process (both videos parallel) | DB-backed worker (`app/workers/ingestion_worker.py`) |
 
-Each backend degrades gracefully to the in-process default if misconfigured, so a
-live demo never breaks on infrastructure.
+These are configuration options, not validated scalability results. Verify behavior and
+operational characteristics in the target environment before relying on a shared backend.
 
 ## Known Limitations
 
